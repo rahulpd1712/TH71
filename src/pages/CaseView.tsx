@@ -124,13 +124,13 @@ export default function CaseView() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="h-4 w-4" /> {t("back")}
         </button>
         <div className="flex items-center gap-3">
           {isDoctor && (
             <button onClick={toggleStatus} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${(caseRecord.status || 'ongoing') === 'closed' ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-green-600 text-white hover:bg-green-700'}`}>
               {(caseRecord.status || 'ongoing') === 'closed' ? <CheckCircle className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-              {(caseRecord.status || 'ongoing') === 'closed' ? 'Mark Ongoing' : 'Mark Closed'}
+              {(caseRecord.status || 'ongoing') === 'closed' ? t("mark_ongoing") : t("mark_closed")}
             </button>
           )}
           {!isAdmin && (
@@ -145,14 +145,14 @@ export default function CaseView() {
         <div className="text-center border-b border-gray-200 pb-4">
           <h2 className="text-2xl font-bold text-gray-900">{t("app_name")} Case File</h2>
           <p className="text-sm text-gray-500 capitalize">{caseRecord.stream} | {new Date(caseRecord.created_at).toLocaleDateString('en-IN')}</p>
-          <p className="text-xs text-gray-400 font-mono mt-1">Case ID: {caseRecord.id}</p>
+          <p className="text-xs text-gray-400 font-mono mt-1">{t("case_id")}: {caseRecord.id}</p>
           <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${(caseRecord.status || 'ongoing') === 'closed' ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}>
-            {(caseRecord.status || 'ongoing') === 'closed' ? 'Closed' : 'Ongoing'}
+            {(caseRecord.status || 'ongoing') === 'closed' ? t('closed') : t('ongoing')}
           </span>
         </div>
 
         {!isAdmin && (
-          <Section title="Patient Information">
+          <Section title={t("patient_information")}>
             <InfoRow label="Name" value={caseRecord.patient_name} />
             <InfoRow label="Age" value={caseRecord.patient_age ? `${caseRecord.patient_age} years` : undefined} />
             <InfoRow label="Gender" value={caseRecord.patient_gender} />
@@ -163,31 +163,31 @@ export default function CaseView() {
         )}
 
         {caseRecord.chief_complaints && (
-          <Section title="Chief Complaints">
+          <Section title={t("chief_complaints")}>
             <p className="text-gray-700">{caseRecord.chief_complaints}</p>
           </Section>
         )}
 
         {caseRecord.history_present_illness && (
-          <Section title="Present Illness">
+          <Section title={t("history_present_illness")}>
             <p className="text-gray-700 whitespace-pre-wrap">{caseRecord.history_present_illness}</p>
           </Section>
         )}
 
         {caseRecord.past_history && (
-          <Section title="Past History">
+          <Section title={t("past_history")}>
             <p className="text-gray-700 whitespace-pre-wrap">{caseRecord.past_history}</p>
           </Section>
         )}
 
         {caseRecord.family_history && (
-          <Section title="Family History">
+          <Section title={t("family_history")}>
             <p className="text-gray-700 whitespace-pre-wrap">{caseRecord.family_history}</p>
           </Section>
         )}
 
         {caseRecord.personal_history && Object.values(caseRecord.personal_history).some(v => v) && (
-          <Section title="Personal History">
+          <Section title={t("personal_history")}>
             {Object.entries(caseRecord.personal_history).filter(([, v]) => v).map(([k, v]) => (
               <InfoRow key={k} label={k.charAt(0).toUpperCase() + k.slice(1)} value={v} />
             ))}
@@ -195,7 +195,7 @@ export default function CaseView() {
         )}
 
         {caseRecord.vitals && Object.values(caseRecord.vitals).some(v => v) && (
-          <Section title="Vitals">
+          <Section title={t("vitals")}>
             {Object.entries(caseRecord.vitals).filter(([, v]) => v).map(([k, v]) => (
               <InfoRow key={k} label={k.toUpperCase()} value={v} />
             ))}
@@ -205,28 +205,28 @@ export default function CaseView() {
         {caseRecord.stream_specific_data && <StreamSpecificView data={caseRecord.stream_specific_data} />}
 
         {!isAdmin && caseRecord.diagnosis && (
-          <Section title="Diagnosis">
+          <Section title={t("diagnosis")}>
             <p className="text-gray-700 font-medium">{caseRecord.diagnosis}</p>
           </Section>
         )}
 
         {(caseRecord.namaste_code || caseRecord.icd11_tm2_code) && (
-          <Section title="Coding">
+          <Section title={t("coding")}>
             {caseRecord.namaste_code && <InfoRow label="NAMASTE" value={caseRecord.namaste_code} />}
             {caseRecord.icd11_tm2_code && <InfoRow label="ICD-11 TM2" value={caseRecord.icd11_tm2_code} />}
           </Section>
         )}
 
         {(caseRecord.treatment_plan || isDoctorRole) && (
-          <Section title="Treatment Plan">
+          <Section title={t("treatment_plan")}>
             {!editingPlan && (
               <div className="flex items-start gap-3">
                 <p className="text-gray-700 whitespace-pre-wrap flex-1">
-                  {caseRecord.treatment_plan ? caseRecord.treatment_plan : 'No treatment plan yet.'}
+                  {caseRecord.treatment_plan ? caseRecord.treatment_plan : t('no_treatment_plan')}
                 </p>
                 {isDoctorRole && (
                   <button onClick={startEditPlan} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium whitespace-nowrap">
-                    {caseRecord.treatment_plan ? 'Edit' : 'Add'} Plan
+                    {caseRecord.treatment_plan ? t('edit') : t('add_plan')}
                   </button>
                 )}
               </div>
@@ -248,13 +248,13 @@ export default function CaseView() {
                     disabled={savingPlan || !planDraft.trim()}
                     className="px-4 py-1.5 bg-emerald-600 text-white text-sm rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50"
                   >
-                    {savingPlan ? 'Saving...' : 'Save'}
+                    {savingPlan ? t('saving') : t('save')}
                   </button>
                   <button
                     onClick={() => { setEditingPlan(false); setPlanError('') }}
                     className="px-4 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                 </div>
               </div>
@@ -264,7 +264,7 @@ export default function CaseView() {
 
         {/* Previous Cases - Doctors only */}
         {isDoctor && prevCases.length > 0 && (
-          <Section title={`Previous Cases (${prevCases.length})`}>
+          <Section title={`${t("previous_cases")} (${prevCases.length})`}>
             {prevCases.map(pc => (
               <div key={pc.id} className="bg-white rounded-lg p-3 border border-gray-100">
                 <div className="flex items-center justify-between">

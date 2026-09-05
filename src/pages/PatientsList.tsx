@@ -74,7 +74,7 @@ export default function PatientsList() {
           onClick={() => navigate('/patients/new')}
           className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700"
         >
-          + New Patient
+          {t("new_patient_btn")}
         </button>
       </div>
 
@@ -121,7 +121,7 @@ export default function PatientsList() {
                       onClick={() => navigate(`/patients/${p.id}/history`)}
                       className="text-emerald-600 hover:text-emerald-700 font-medium text-sm inline-flex items-center gap-1"
                     >
-                      <Eye className="h-4 w-4" /> View
+                      <Eye className="h-4 w-4" /> {t("view")}
                     </button>
                   </td>
                 </tr>

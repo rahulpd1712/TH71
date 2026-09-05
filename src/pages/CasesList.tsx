@@ -176,16 +176,16 @@ export default function CasesList() {
             {admins.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
           </select>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none">
-            <option value="">All Status</option>
-            <option value="ongoing">Ongoing</option>
-            <option value="closed">Closed</option>
+            <option value="">{t("all_status")}</option>
+            <option value="ongoing">{t("ongoing")}</option>
+            <option value="closed">{t("closed")}</option>
           </select>
           <button onClick={() => setSortByAbha(!sortByAbha)} className={`text-sm px-3 py-1.5 rounded-lg border ${sortByAbha ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
-            ABHA Sort {sortByAbha ? '↑' : ''}
+            {t("abha_sort")} {sortByAbha ? '↑' : ''}
           </button>
           {hasFilters && (
             <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-red-600 hover:text-red-800">
-              <X className="h-3 w-3" /> Clear
+              <X className="h-3 w-3" /> {t("clear")}
             </button>
           )}
         </div>
@@ -194,7 +194,7 @@ export default function CasesList() {
       {/* Cases Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading...</div>
+          <div className="p-8 text-center text-gray-500">{t("loading")}</div>
         ) : cases.length === 0 ? (
           <div className="p-8 text-center text-gray-500">{t("no_cases")}</div>
         ) : (
@@ -206,13 +206,13 @@ export default function CasesList() {
                   {!isAdmin && <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("age")}</th>}
                   {!isAdmin && <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("gender")}</th>}
                   {!isAdmin && <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("contact")}</th>}
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Case ID</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("case_id")}</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("stream")}</th>
                   {!isAdmin && <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("diagnosis")}</th>}
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("doctor")}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Status</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("status")}</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("date")}</th>
-                  {!isAdmin && <th className="text-right px-4 py-3 text-sm font-medium text-gray-600">Actions</th>}
+                  {!isAdmin && <th className="text-right px-4 py-3 text-sm font-medium text-gray-600">{t("actions")}</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -232,11 +232,11 @@ export default function CasesList() {
                       {(profile?.role === 'doctor' || profile?.role === 'assistant') ? (
                         <button onClick={() => toggleStatus(c.id, c.status || 'ongoing')} className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${(c.status || 'ongoing') === 'closed' ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}>
                           {(c.status || 'ongoing') === 'closed' ? <CheckCircle className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
-                          {(c.status || 'ongoing') === 'closed' ? 'Closed' : 'Ongoing'}
+                          {(c.status || 'ongoing') === 'closed' ? t('closed') : t('ongoing')}
                         </button>
                       ) : (
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${(c.status || 'ongoing') === 'closed' ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}>
-                          {(c.status || 'ongoing') === 'closed' ? 'Closed' : 'Ongoing'}
+                          {(c.status || 'ongoing') === 'closed' ? t('closed') : t('ongoing')}
                         </span>
                       )}
                     </td>

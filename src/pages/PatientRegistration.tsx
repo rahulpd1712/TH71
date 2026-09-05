@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { UserPlus } from 'lucide-react'
 
 export default function PatientRegistration() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
@@ -62,14 +64,14 @@ export default function PatientRegistration() {
           <UserPlus className="h-6 w-6 text-emerald-600" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Register New Patient</h2>
-          <p className="text-sm text-gray-500">Fill in patient details below</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t("new_patient_page")}</h2>
+          <p className="text-sm text-gray-500">{t("fill_patient_details")}</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("full_name_required")}</label>
           <input
             type="text"
             value={form.name}
@@ -82,7 +84,7 @@ export default function PatientRegistration() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Age *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("age_required")}</label>
             <input
               type="number"
               value={form.age}
@@ -95,14 +97,14 @@ export default function PatientRegistration() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("gender_required")}</label>
             <select
               value={form.gender}
               onChange={(e) => updateField('gender', e.target.value)}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
             >
-              <option value="">Select gender</option>
+              <option value="">{t("select_gender")}</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
               <option value="Other">Other</option>
@@ -111,7 +113,7 @@ export default function PatientRegistration() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("contact_number")}</label>
           <input
             type="tel"
             value={form.contact}
@@ -149,7 +151,7 @@ export default function PatientRegistration() {
             disabled={loading}
             className="flex-1 bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Saving...' : 'Register & Start Case'}
+            {loading ? t('saving') : t('register_patient')}
           </button>
         </div>
       </form>
