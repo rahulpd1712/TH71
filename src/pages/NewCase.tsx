@@ -122,6 +122,7 @@ export default function NewCase() {
     })
     if (insertError) { setError(insertError.message); setLoading(false); return }
     clearDraft()
+    window.dispatchEvent(new Event('ayush-stats-changed'))
     navigate('/patients/' + patient.id + '/history')
   }
 

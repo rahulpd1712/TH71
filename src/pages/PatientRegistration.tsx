@@ -24,6 +24,9 @@ export default function PatientRegistration() {
     setError('')
     setLoading(true)
 
+    // NB: do NOT chain .select().single() here — the API shim treats a
+    // trailing .select() as a plain read and would skip the insert
+    // entirely (silently returning the newest existing patient).
     const { data, error: insertError } = await supabase
       .from('patients')
       .insert({
@@ -33,8 +36,6 @@ export default function PatientRegistration() {
         contact: form.contact || null,
         abha_id: form.abha_id || null,
       })
-      .select()
-      .single()
 
     if (insertError) {
       setError(insertError.message)
@@ -42,7 +43,16 @@ export default function PatientRegistration() {
       return
     }
 
-    navigate(`/cases/new?patient_id=${data.id}`)
+    const newId = data && (data.patient ? data.patient.id : data.id)
+    if (!newId) {
+      setError('Patient was created but the response was malformed. Please refresh the list.')
+      setLoading(false)
+      return
+    }
+
+    // Keep the dashboard's counters fresh without a manual reload
+    window.dispatchEvent(new Event('ayush-stats-changed'))
+    navigate(`/cases/new?patient_id=${newId}`)
   }
 
   return (
