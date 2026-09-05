@@ -13,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error?: string }>
   signUp: (email: string, password: string, fullName: string, role: UserRole, phone?: string, doctorId?: string, hospitalName?: string) => Promise<{ error?: string }>
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
   isApproved: boolean
   isSuperAdmin: boolean
 }
@@ -89,11 +90,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut()
   }
 
+  async function refreshProfile() {
+    if (!user) return
+    await fetchProfile(user.id)
+  }
+
   const isApproved = profile?.approved ?? false
   const isSuperAdmin = profile?.role === 'super_admin' && profile?.approved
 
   return (
-    <AuthContext.Provider value={{ user, profile, session, loading, signIn, signUp, signOut, isApproved, isSuperAdmin }}>
+    <AuthContext.Provider value={{ user, profile, session, loading, signIn, signUp, signOut, refreshProfile, isApproved, isSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   )

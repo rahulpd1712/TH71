@@ -16,8 +16,10 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     return <Navigate to="/login" replace />
   }
 
-  // If user is an admin but not approved (and not super_admin), redirect to pending page
-  if (profile && (profile.role === 'hospital' || profile.role === 'admin') && !profile.approved) {
+  // Any account that has not been approved by the CMO (super admin)
+  // sees the pending-approval screen; super_admin accounts are always
+  // created approved.
+  if (profile && profile.role !== 'super_admin' && !profile.approved) {
     return <Navigate to="/pending-approval" replace />
   }
   

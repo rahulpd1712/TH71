@@ -65,8 +65,10 @@ app.post('/api/auth/signup', (req, res) => {
     if (existing) return res.status(400).json({ error: 'Email already registered' });
     const id = uuid();
     const hash = bcrypt.hashSync(password, 10);
-    // Only super_admin and doctor can self-register; admin needs approval
-    const approved = (role === 'super_admin' || role === 'doctor' || role === 'assistant') ? 1 : 0;
+    // Every self-registered account needs CMO (super_admin) approval.
+    // The signup UI never offers super_admin, so this is always 0 here;
+    // seeded accounts are inserted with approved=1 directly.
+    const approved = role === 'super_admin' ? 1 : 0;
     db.prepare('INSERT INTO users (id,email,password_hash,full_name,role,approved,phone,doctor_id,hospital_name) VALUES (?,?,?,?,?,?,?,?,?)').run(id, email, hash, full_name, role, approved, phone || null, doctor_id || null, hospital_name || null);
     const token = jwt.sign({ userId: id }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id, email, full_name, role, approved } });

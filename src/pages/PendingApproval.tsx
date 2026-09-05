@@ -3,7 +3,7 @@ import { ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 export default function PendingApproval() {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, refreshProfile } = useAuth()
   const { t } = useTranslation()
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
@@ -23,6 +23,12 @@ export default function PendingApproval() {
             <strong>Status:</strong> <span className="text-amber-600 font-medium">Pending Approval</span>
           </p>
         </div>
+        <button
+          onClick={refreshProfile}
+          className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors mb-2"
+        >
+          Check Status
+        </button>
         <button
           onClick={signOut}
           className="w-full bg-gray-200 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-300 transition-colors"

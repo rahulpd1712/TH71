@@ -91,9 +91,11 @@ export default function Signup() {
                 <option value="assistant">Assistant</option>
                 <option value="hospital">Hospital (requires CMO approval)</option>
               </select>
-              {role === 'hospital' && (
-                <p className="text-xs text-amber-600 mt-1 bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200">Hospital accounts require CMO approval.</p>
-              )}
+              <p className="text-xs text-amber-600 mt-1 bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200">
+                {role === 'hospital'
+                  ? 'Hospital accounts require CMO approval.'
+                  : 'Your account will require CMO approval before you can sign in.'}
+              </p>
             </div>
             {(role === 'doctor' || role === 'assistant') && (
               <div>
