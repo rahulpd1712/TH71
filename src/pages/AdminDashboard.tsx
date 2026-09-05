@@ -33,6 +33,8 @@ interface AssignReq {
   created_at: string
   from_user_name?: string | null
   to_user_name?: string | null
+  from_user_current_admin_name?: string | null
+  from_user_current_doctor_name?: string | null
 }
 
 export default function AdminDashboard() {
@@ -222,6 +224,14 @@ export default function AdminDashboard() {
                       {typeLabel} · {new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       {r.reason ? ` · "${r.reason}"` : ''}
                     </div>
+                    {(r.from_user_current_admin_name || r.from_user_current_doctor_name) && (
+                      <div className="text-xs text-gray-600 mt-1">
+                        Currently under:{' '}
+                        <span className="font-medium">
+                          {r.from_user_current_admin_name || r.from_user_current_doctor_name}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button

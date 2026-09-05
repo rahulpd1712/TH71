@@ -332,7 +332,9 @@ app.get('/api/stats', auth, (req, res) => {
 
 
 app.get('/api/assignment_requests', auth, (req, res) => {
-  const base = "SELECT ar.*, fu.full_name as from_user_name, tu.full_name as to_user_name FROM assignment_requests ar LEFT JOIN users fu ON ar.from_user_id = fu.id LEFT JOIN users tu ON ar.to_user_id = tu.id";
+  // Also include who the requester currently works under, so the CMO can
+  // see the from → to picture at a glance when reviewing transfers.
+  const base = "SELECT ar.*, fu.full_name as from_user_name, tu.full_name as to_user_name, ca.full_name as from_user_current_admin_name, cd.full_name as from_user_current_doctor_name FROM assignment_requests ar LEFT JOIN users fu ON ar.from_user_id = fu.id LEFT JOIN users tu ON ar.to_user_id = tu.id LEFT JOIN users ca ON fu.assigned_admin_id = ca.id LEFT JOIN users cd ON fu.assigned_doctor_id = cd.id";
   let requests;
   if (req.user.role === 'super_admin') {
     // The CMO oversees all assignment/transfer requests
