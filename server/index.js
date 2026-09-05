@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
 const { db, uuid, seedDatabase } = require('./db');
 
 const app = express();
@@ -323,6 +325,16 @@ app.get('/api/patients/:id/history', auth, (req, res) => {
   const cases = db.prepare("SELECT c.*, u.full_name as doctor_name, au.full_name as admin_name FROM cases c LEFT JOIN users u ON c.doctor_id = u.id LEFT JOIN users au ON u.assigned_admin_id = au.id WHERE c.patient_id = ? ORDER BY c.created_at DESC").all(req.params.id);
   res.json({ patient, cases });
 });
+
+// Serve built frontend (production) — falls back to index.html for SPA routes
+const distDir = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(distDir, 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log('Server running on http://localhost:' + PORT);

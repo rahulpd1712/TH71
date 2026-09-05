@@ -1,0 +1,26 @@
+# Render blueprint — deploy the whole app (frontend + API + SQLite) as one web service.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Free plan notes:
+#   - Free instances sleep after 15 min of inactivity (first visit takes ~30s to wake).
+#   - The free plan has NO persistent disk: the SQLite database is re-created (with demo seed
+#     data) whenever the instance is recycled or the service is redeployed. Fine for demos/tests.
+#   - To keep data permanently, upgrade to a paid plan and uncomment the `disk` block below
+#     (or add a Disk in the Render dashboard mounted at /app/server/data).
+
+services:
+  - type: web
+    name: ayush-case-taking
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      # Strong random secret for JWT signing; set your own value if you prefer.
+      - key: JWT_SECRET
+        generateValue: true
+    # Uncomment this block on a paid plan to make the SQLite database persistent:
+    # disk:
+    #   name: sqlite-data
+    #   mountPath: /app/server/data
+    #   sizeGB: 1
