@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -5,6 +7,14 @@ import { useTranslation } from 'react-i18next'
 export default function PendingApproval() {
   const { profile, signOut, refreshProfile } = useAuth()
   const { t } = useTranslation()
+  const navigate = useNavigate()
+
+  // Once the CMO approves the account, leave this screen automatically.
+  useEffect(() => {
+    if (profile && profile.role !== 'super_admin' && profile.approved) {
+      navigate('/', { replace: true })
+    }
+  }, [profile, navigate])
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center">
