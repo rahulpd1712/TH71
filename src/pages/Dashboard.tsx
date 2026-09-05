@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { apiClient } from '../lib/apiClient'
 import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { UserPlus, FileText, Users, Activity } from 'lucide-react'
@@ -23,8 +23,8 @@ export default function Dashboard() {
       const weekAgo = new Date()
       weekAgo.setDate(weekAgo.getDate() - 7)
 
-      const { count: patientsToday } = await supabase.from('patients').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString())
-      const { count: casesThisWeek } = await supabase.from('cases').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString())
+      const { count: patientsToday } = await apiClient.from('patients').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString())
+      const { count: casesThisWeek } = await apiClient.from('cases').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString())
       setStats({ patientsToday: patientsToday || 0, casesThisWeek: casesThisWeek || 0 })
     }
     loadStats()

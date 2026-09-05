@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '../lib/supabase'
+import { apiClient } from '../lib/apiClient'
 import { useAuth } from '../contexts/AuthContext'
 import CommonCaseFields from '../components/forms/CommonCaseFields'
 import AyurvedaForm from '../components/forms/AyurvedaForm'
@@ -98,8 +98,8 @@ export default function NewCase() {
   useEffect(() => {
     const pid = patientId || draft?.patientId
     if (pid) {
-      supabase.from('patients').select('*').eq('id', pid).single().then(({ data }) => setPatient(data))
-      supabase.from('cases').select('id, created_at, diagnosis, stream')
+      apiClient.from('patients').select('*').eq('id', pid).single().then(({ data }) => setPatient(data))
+      apiClient.from('cases').select('id, created_at, diagnosis, stream')
         .eq('patient_id', pid)
         .order('created_at', { ascending: false })
         .limit(20)
@@ -110,7 +110,7 @@ export default function NewCase() {
   async function handleSubmit() {
     if (!patient || !user || !stream) return
     setError(''); setLoading(true)
-    const { error: insertError } = await supabase.from('cases').insert({
+    const { error: insertError } = await apiClient.from('cases').insert({
       patient_id: patient.id, doctor_id: user.id, stream,
       chief_complaints: commonData.chief_complaints,
       history_present_illness: commonData.history_present_illness,

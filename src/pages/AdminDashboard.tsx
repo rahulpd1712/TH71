@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { apiClient } from '../lib/apiClient'
 import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -7,11 +7,6 @@ import { BarChart3, Users, FileText, TrendingUp, ShieldCheck, CheckCircle, XCirc
 
 interface StreamCount {
   stream: string
-  count: number
-}
-
-interface DiagnosisCount {
-  diagnosis: string
   count: number
 }
 
@@ -24,11 +19,11 @@ interface PendingUser {
 }
 
 export default function AdminDashboard() {
-    const { isSuperAdmin } = useAuth()
+  const { isSuperAdmin } = useAuth()
   const { t } = useTranslation()
   const [stats, setStats] = useState({ patientsToday: 0, casesThisWeek: 0, totalCases: 0 })
   const [streamData, setStreamData] = useState<StreamCount[]>([])
-    const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
   const [approving, setApproving] = useState<string | null>(null)
 
   useEffect(() => { loadStats() }, [])
@@ -39,15 +34,15 @@ export default function AdminDashboard() {
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
 
-    const { count: patientsToday } = await supabase
+    const { count: patientsToday } = await apiClient
       .from('patients').select('*', { count: 'exact', head: true })
       .gte('created_at', today.toISOString())
 
-    const { count: casesThisWeek } = await supabase
+    const { count: casesThisWeek } = await apiClient
       .from('cases').select('*', { count: 'exact', head: true })
       .gte('created_at', weekAgo.toISOString())
 
-    const { count: totalCases } = await supabase
+    const { count: totalCases } = await apiClient
       .from('cases').select('*', { count: 'exact', head: true })
 
     setStats({
@@ -56,7 +51,7 @@ export default function AdminDashboard() {
       totalCases: totalCases || 0,
     })
 
-    const { data: allCases } = await supabase.from('cases').select('stream')
+    const { data: allCases } = await apiClient.from('cases').select('stream')
     if (allCases) {
       const streamCounts: Record<string, number> = {}
       allCases.forEach((c: any) => { streamCounts[c.stream] = (streamCounts[c.stream] || 0) + 1 })
@@ -64,12 +59,9 @@ export default function AdminDashboard() {
         stream: stream.charAt(0).toUpperCase() + stream.slice(1), count,
       })))
     }
-
-    
-
     // Load pending admin approvals (super_admin only)
     if (isSuperAdmin) {
-      const { data: pending } = await supabase
+      const { data: pending } = await apiClient
         .from('users')
         .select('id, full_name, role, requested_at, approved')
         .eq('approved', false)
@@ -80,7 +72,7 @@ export default function AdminDashboard() {
 
   async function approveUser(userId: string) {
     setApproving(userId)
-    await supabase.from('users').update({ approved: true }).eq('id', userId)
+    await apiClient.from('users').update({ approved: true }).eq('id', userId)
     setPendingUsers(prev => prev.filter(u => u.id !== userId))
     setApproving(null)
   }
@@ -88,7 +80,7 @@ export default function AdminDashboard() {
   async function rejectUser(userId: string) {
     setApproving(userId)
     // Delete the auth user and profile
-    await supabase.from('users').delete().eq('id', userId)
+    await apiClient.from('users').delete().eq('id', userId)
     setPendingUsers(prev => prev.filter(u => u.id !== userId))
     setApproving(null)
   }

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import type { ReactNode } from "react"
-import { supabase } from "../lib/supabase"
-import type { UserProfile, UserRole } from "../lib/supabase"
+import { apiClient } from "../lib/apiClient"
+import type { UserProfile, UserRole } from "../lib/apiClient"
 
 interface LocalUser { id: string; email?: string; role?: string; full_name?: string }
 interface LocalSession { user: LocalUser; access_token?: string }
@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    apiClient.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = apiClient.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -61,13 +61,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await apiClient.auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
     return {}
   }
 
   async function signUp(email: string, password: string, fullName: string, role: UserRole, phone?: string, doctorId?: string, hospitalName?: string) {
-    const { error } = await supabase.auth.signUp({
+    const { error } = await apiClient.auth.signUp({
       email,
       password,
       options: {
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
+    await apiClient.auth.signOut()
   }
 
   const isApproved = profile?.approved ?? false

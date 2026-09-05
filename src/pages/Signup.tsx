@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from "../contexts/AuthContext"
-import type { UserRole } from "../lib/supabase"
+import type { UserRole } from "../lib/apiClient"
 import { useNavigate } from 'react-router-dom'
 import { UserPlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

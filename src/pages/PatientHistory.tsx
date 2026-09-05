@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { apiClient } from '../lib/apiClient'
 import { generateCasePDF } from '../lib/pdfGenerator'
 import { ArrowLeft, Plus, Eye, Download, FileText } from 'lucide-react'
 
@@ -35,8 +35,8 @@ export default function PatientHistory() {
   useEffect(() => {
     if (patientId) {
       Promise.all([
-        supabase.from('patients').select('*').eq('id', patientId).single(),
-        supabase.from('cases').select('*, users(full_name)').eq('patient_id', patientId).order('created_at', { ascending: false }),
+        apiClient.from('patients').select('*').eq('id', patientId).single(),
+        apiClient.from('cases').select('*, users(full_name)').eq('patient_id', patientId).order('created_at', { ascending: false }),
       ]).then(([patientRes, casesRes]) => {
         setPatient(patientRes.data)
         setCases(casesRes.data || [])

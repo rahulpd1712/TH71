@@ -2,7 +2,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { Navigate } from 'react-router-dom'
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, profile, isApproved } = useAuth()
+  const { user, loading, profile } = useAuth()
   
   if (loading) {
     return (

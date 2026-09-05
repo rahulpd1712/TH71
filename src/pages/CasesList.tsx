@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { apiClient } from '../lib/apiClient'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { FileText, Search, Eye, Filter, X, CheckCircle, Circle } from "lucide-react"
@@ -42,7 +42,7 @@ export default function CasesList() {
   useEffect(() => { loadCases(); loadUsers() }, [])
 
   async function loadUsers() {
-    const { data: u } = await supabase.from('users').select('id, full_name, role, assigned_admin_id')
+    const { data: u } = await apiClient.from('users').select('id, full_name, role, assigned_admin_id')
     if (u) {
       setDoctors(u.filter((x: UserRow) => x.role === 'doctor'))
       setAdmins(u.filter((x: UserRow) => x.role === 'hospital' || x.role === 'admin'))
@@ -51,14 +51,14 @@ export default function CasesList() {
 
   async function loadCases() {
     setLoading(true)
-    const { data } = await supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(200)
+    const { data } = await apiClient.from('cases').select('*').order('created_at', { ascending: false }).limit(200)
     const casesList = (data || []) as any[]
 
     // Fetch patient names and ABHA IDs
     const patientIds = [...new Set(casesList.map((c: any) => c.patient_id).filter(Boolean))]
     let patientMap: Record<string, { name: string; abha_id: string | null }> = {}
     if (patientIds.length > 0) {
-      const { data: pts } = await supabase.from('patients').select('id, name, abha_id')
+      const { data: pts } = await apiClient.from('patients').select('id, name, abha_id')
       if (pts) pts.forEach((p: any) => { patientMap[p.id] = { name: p.name, abha_id: p.abha_id } })
     }
 
@@ -66,12 +66,12 @@ export default function CasesList() {
     const doctorIds = [...new Set(casesList.map((c: any) => c.doctor_id).filter(Boolean))]
     let doctorMap: Record<string, string> = {}
     if (doctorIds.length > 0) {
-      const { data: docUsers } = await supabase.from('users').select('id, full_name').in('id', doctorIds)
+      const { data: docUsers } = await apiClient.from('users').select('id, full_name').in('id', doctorIds)
       if (docUsers) docUsers.forEach((d: any) => { doctorMap[d.id] = d.full_name || 'Unknown' })
     }
 
     // Build admin mapping
-    const { data: allUsers } = await supabase.from('users').select('id, full_name, role, assigned_admin_id')
+    const { data: allUsers } = await apiClient.from('users').select('id, full_name, role, assigned_admin_id')
     let adminMap: Record<string, string> = {}
     let doctorAdminMap: Record<string, string> = {}
     if (allUsers) {
@@ -118,7 +118,7 @@ export default function CasesList() {
 
   async function toggleStatus(caseId: string, currentStatus: string) {
     const newStatus = currentStatus === 'closed' ? 'ongoing' : 'closed'
-    await supabase.from('cases').update({ status: newStatus }).eq('id', caseId)
+    await apiClient.from('cases').update({ status: newStatus }).eq('id', caseId)
     setAllCases(prev => prev.map(c => c.id === caseId ? { ...c, status: newStatus } : c))
     setCases(prev => prev.map(c => c.id === caseId ? { ...c, status: newStatus } : c))
   }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { apiClient } from '../lib/apiClient'
 import { generateCasePDF } from '../lib/pdfGenerator'
 import { ArrowLeft, Download, CheckCircle, Circle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -55,12 +55,12 @@ export default function CaseView() {
 
   useEffect(() => {
     if (id) {
-      supabase.from('cases').select('*').eq('id', id).single().then(({ data }: any) => {
+      apiClient.from('cases').select('*').eq('id', id).single().then(({ data }: any) => {
         setCaseRecord(data)
         setLoading(false)
         // Load previous cases for this patient (doctors only)
         if (isDoctor && data?.patient_id) {
-          supabase.from('cases').select('*').eq('patient_id', data.patient_id).order('created_at', { ascending: false }).then(({ data: prev }: any) => {
+          apiClient.from('cases').select('*').eq('patient_id', data.patient_id).order('created_at', { ascending: false }).then(({ data: prev }: any) => {
             setPrevCases((prev || []).filter((c: any) => c.id !== id))
           })
         }
@@ -81,7 +81,7 @@ export default function CaseView() {
   async function toggleStatus() {
     if (!caseRecord) return
     const newStatus = (caseRecord.status || 'ongoing') === 'closed' ? 'ongoing' : 'closed'
-    await supabase.from('cases').update({ status: newStatus }).eq('id', caseRecord.id)
+    await apiClient.from('cases').update({ status: newStatus }).eq('id', caseRecord.id)
     setCaseRecord({ ...caseRecord, status: newStatus })
   }
 

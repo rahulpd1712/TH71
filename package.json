@@ -15,7 +15,6 @@
     "backup": "node scripts/backup.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.4",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.0.3",
     "cors": "^2.8.6",

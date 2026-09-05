@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import type { ReactNode } from "react"
-import { supabase } from "../lib/supabase"
+import { apiClient } from "../lib/apiClient"
 import { useAuth } from "./AuthContext"
 
 interface Notification {
@@ -31,7 +31,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
@@ -45,18 +45,18 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }, [fetchNotifications])
 
   async function markAsRead(id: string) {
-    await supabase.from("notifications").update({ read: true }).eq("id", id)
+    await apiClient.from("notifications").update({ read: true }).eq("id", id)
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
   }
 
   async function markAllAsRead() {
     if (!user) return
-    await supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false)
+    await apiClient.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false)
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }
 
   async function sendNotification(userId: string, title: string, message: string, type = "info", link?: string) {
-    await supabase.from("notifications").insert({
+    await apiClient.from("notifications").insert({
       user_id: userId,
       title,
       message,

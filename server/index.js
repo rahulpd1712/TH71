@@ -21,11 +21,11 @@ app.use(express.json());
 // Seed database on startup
 seedDatabase();
 // Migration: add status column to cases if missing
-try { db.exec("ALTER TABLE cases ADD COLUMN status TEXT DEFAULT 'ongoing'"); } catch(e) {}
-try { db.exec("ALTER TABLE users ADD COLUMN phone TEXT"); } catch(e) {}
-try { db.exec("ALTER TABLE users ADD COLUMN doctor_id TEXT"); } catch(e) {}
-try { db.exec("ALTER TABLE users ADD COLUMN hospital_name TEXT"); } catch(e) {}
-try { db.exec("UPDATE users SET role = 'hospital' WHERE role = 'admin'"); } catch(e) {}
+try { db.exec("ALTER TABLE cases ADD COLUMN status TEXT DEFAULT 'ongoing'"); } catch {}
+try { db.exec("ALTER TABLE users ADD COLUMN phone TEXT"); } catch {}
+try { db.exec("ALTER TABLE users ADD COLUMN doctor_id TEXT"); } catch {}
+try { db.exec("ALTER TABLE users ADD COLUMN hospital_name TEXT"); } catch {}
+try { db.exec("UPDATE users SET role = 'hospital' WHERE role = 'admin'"); } catch {}
 
 // Auth middleware
 function auth(req, res, next) {
@@ -37,16 +37,9 @@ function auth(req, res, next) {
     if (!user) return res.status(401).json({ error: 'User not found' });
     req.user = user;
     next();
-  } catch(e) {
+  } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
-}
-
-function adminOnly(req, res, next) {
-  if (req.user.role !== 'super_admin' && req.user.role !== 'admin' && req.user.role !== 'hospital') {
-    return res.status(403).json({ error: 'Admin only' });
-  }
-  next();
 }
 
 function superAdminOnly(req, res, next) {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { apiClient } from '../lib/apiClient'
 import { UserPlus } from 'lucide-react'
 
 export default function PatientRegistration() {
@@ -24,7 +24,7 @@ export default function PatientRegistration() {
     setError('')
     setLoading(true)
 
-    const { data, error: insertError } = await supabase
+    const { data, error: insertError } = await apiClient
       .from('patients')
       .insert({
         name: form.name,

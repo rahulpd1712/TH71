@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { apiClient } from '../lib/apiClient'
 import { useTranslation } from 'react-i18next'
 import { Users, Search, Eye, ArrowUpDown } from 'lucide-react'
 
@@ -28,7 +28,7 @@ export default function PatientsList() {
 
   async function loadPatients() {
     setLoading(true)
-    let query = supabase
+    let query = apiClient
       .from('patients')
       .select('*')
 

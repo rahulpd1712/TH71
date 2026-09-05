@@ -2,7 +2,7 @@ import { useAuth } from "../contexts/AuthContext"
 import { useTranslation } from "react-i18next"
 import { useNotifications } from "../contexts/NotificationsContext"
 import { useEffect, useState } from "react"
-import { supabase } from "../lib/supabase"
+import { apiClient } from "../lib/apiClient"
 import { Shield, Check, X, ChevronDown, ChevronRight } from "lucide-react"
 
 interface UP { id: string; role: string; full_name: string | null; approved: boolean; created_at: string; assigned_admin_id: string | null; assigned_doctor_id: string | null; phone: string | null; doctor_id: string | null; hospital_name: string | null }
@@ -88,9 +88,9 @@ export default function UserManagement() {
 
   async function fetchData() {
     setLoading(true)
-    const { data: u } = await supabase.from("users").select("*").order("created_at", { ascending: false })
-    const { data: c } = await supabase.from("cases").select("doctor_id")
-    const { data: r } = await supabase.from("assignment_requests").select("*").order("created_at", { ascending: false })
+    const { data: u } = await apiClient.from("users").select("*").order("created_at", { ascending: false })
+    const { data: c } = await apiClient.from("cases").select("doctor_id")
+    const { data: r } = await apiClient.from("assignment_requests").select("*").order("created_at", { ascending: false })
     const ct: Record<string, number> = {}
     if (c) c.forEach((x: any) => { ct[x.doctor_id] = (ct[x.doctor_id] || 0) + 1 })
     setUsers(u || []); setCc(ct); setRequests(r || []); setLoading(false)
@@ -99,7 +99,7 @@ export default function UserManagement() {
   async function handleDirectAssign(userId: string, field: string, value: string | null) {
     const update: any = {}
     update[field] = value
-    await supabase.from("users").update(update).eq("id", userId)
+    await apiClient.from("users").update(update).eq("id", userId)
     fetchData()
   }
 
@@ -109,7 +109,7 @@ export default function UserManagement() {
     if (!target) return
     const reason = prompt(`Enter reason for requesting to join ${target.full_name} (${typeLabel}):`)
     if (reason === null) return
-    await supabase.from("assignment_requests").insert({
+    await apiClient.from("assignment_requests").insert({
       from_user_id: profile!.id,
       to_user_id: targetUserId,
       request_type: requestType,
@@ -121,7 +121,7 @@ export default function UserManagement() {
   }
 
   async function handleResolve(requestId: string, status: string) {
-    await supabase.from("assignment_requests").update({
+    await apiClient.from("assignment_requests").update({
       status,
       resolved_at: new Date().toISOString(),
       resolved_by: profile!.id
@@ -135,9 +135,9 @@ export default function UserManagement() {
       const req = requests.find(r => r.id === requestId)
       if (req) {
         if (req.request_type === "doctor_to_admin") {
-          await supabase.from("users").update({ assigned_admin_id: req.to_user_id }).eq("id", req.from_user_id)
+          await apiClient.from("users").update({ assigned_admin_id: req.to_user_id }).eq("id", req.from_user_id)
         } else {
-          await supabase.from("users").update({ assigned_doctor_id: req.to_user_id }).eq("id", req.from_user_id)
+          await apiClient.from("users").update({ assigned_doctor_id: req.to_user_id }).eq("id", req.from_user_id)
         }
       }
     }
