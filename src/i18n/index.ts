@@ -176,6 +176,13 @@ const resources = {
       contact_number: 'Contact Number',
       select_gender: 'Select gender',
       saving_short: 'Saving...',
+      cmo_approval_hospital: 'Hospital accounts require CMO approval.',
+      cmo_approval_general: 'Your account will require CMO approval before you can sign in.',
+      phone_number: 'Phone Number *',
+      doctor_id_label: 'Doctor ID *',
+      role_doctor: 'Doctor',
+      role_assistant: 'Assistant',
+      role_hospital: 'Hospital (requires CMO approval)',
     }
   },
   hi: {
@@ -334,6 +341,13 @@ const resources = {
       contact_number: 'संपर्क नंबर',
       select_gender: 'लिंग चुनें',
       saving_short: 'सेव हो रहा है...',
+      cmo_approval_hospital: 'अस्पताल खाते के लिए सीएमओ अनुमोदन आवश्यक है।',
+      cmo_approval_general: 'साइन इन करने से पहले आपके खाते को सीएमओ अनुमोदन की आवश्यकता होगी।',
+      phone_number: 'फ़ोन नंबर *',
+      doctor_id_label: 'डॉक्टर आईडी *',
+      role_doctor: 'डॉक्टर',
+      role_assistant: 'सहायक',
+      role_hospital: 'अस्पताल (सीएमओ अनुमोदन आवश्यक है)',
     }
   }
 }

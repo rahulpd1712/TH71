@@ -81,25 +81,23 @@ export default function Signup() {
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className={fieldClass} placeholder="Min 6 characters" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('phone_number')}</label>
               <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required className={fieldClass} placeholder="9876543210" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
               <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={fieldClass}>
-                <option value="doctor">Doctor</option>
-                <option value="assistant">Assistant</option>
-                <option value="hospital">Hospital (requires CMO approval)</option>
+                <option value="doctor">{t('role_doctor')}</option>
+                <option value="assistant">{t('role_assistant')}</option>
+                <option value="hospital">{t('role_hospital')}</option>
               </select>
               <p className="text-xs text-amber-600 mt-1 bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200">
-                {role === 'hospital'
-                  ? 'Hospital accounts require CMO approval.'
-                  : 'Your account will require CMO approval before you can sign in.'}
+                {role === 'hospital' ? t('cmo_approval_hospital') : t('cmo_approval_general')}
               </p>
             </div>
             {(role === 'doctor' || role === 'assistant') && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Doctor ID *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('doctor_id_label')}</label>
                 <input type="text" value={doctorId} onChange={(e) => setDoctorId(e.target.value)} required className={fieldClass} placeholder="DOC-12345" />
               </div>
             )}
