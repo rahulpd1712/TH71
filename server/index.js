@@ -235,8 +235,9 @@ app.get('/api/patients/:id', auth, (req, res) => {
 app.get('/api/cases', auth, (req, res) => {
   const ids = orgMemberIds(req.user);
   const sel = `
-    SELECT c.*, p.name as patient_name, u.full_name as doctor_name,
-           au.full_name as admin_name
+    SELECT c.*, p.name as patient_name, p.age as patient_age, p.gender as patient_gender,
+           p.contact as patient_contact, p.abha_id as patient_abha,
+           u.full_name as doctor_name, au.full_name as admin_name
     FROM cases c
     LEFT JOIN patients p ON c.patient_id = p.id
     LEFT JOIN users u ON c.doctor_id = u.id
