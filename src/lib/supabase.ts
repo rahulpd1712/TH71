@@ -71,7 +71,20 @@ class QueryBuilder implements PromiseLike<{ data: any; error: any }> {
     if (error) return { data: null, error };
     let rows = data[this.table] || data.users || data.patients || data.cases || data.requests || data.notifications || Object.values(data)[0] || data;
     if (!Array.isArray(rows)) rows = [];
-    rows = rows.map((r: any) => ({ ...r, approved: !!r.approved, read: r.read !== undefined ? !!r.read : r.read }));
+    // JSON columns arrive from SQLite as strings; parse them so the UI and
+    // PDF generator receive real objects.
+    const JSON_COLS = ['personal_history', 'vitals', 'stream_specific_data'];
+    rows = rows.map((r: any) => {
+      const o = { ...r };
+      for (const c of JSON_COLS) {
+        if (typeof o[c] === 'string' && o[c]) {
+          try { o[c] = JSON.parse(o[c]) } catch { /* keep raw string */ }
+        }
+      }
+      o.approved = !!o.approved;
+      if (o.read !== undefined) o.read = !!o.read;
+      return o;
+    });
     for (const f of this.filters) rows = rows.filter((r: any) => String(r[f.col]) === String(f.val));
     for (const nf of this.notFilters) {
       if (nf.op === 'is' && nf.val === null) rows = rows.filter((r: any) => r[nf.col] !== null && r[nf.col] !== undefined);
