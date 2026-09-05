@@ -26,6 +26,8 @@ try { db.exec("ALTER TABLE users ADD COLUMN phone TEXT"); } catch(e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN doctor_id TEXT"); } catch(e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN hospital_name TEXT"); } catch(e) {}
 try { db.exec("UPDATE users SET role = 'hospital' WHERE role = 'admin'"); } catch(e) {}
+try { db.exec('ALTER TABLE patients ADD COLUMN created_by TEXT'); } catch(e) {}
+try { db.exec('UPDATE patients SET created_by = (SELECT doctor_id FROM cases WHERE cases.patient_id = patients.id ORDER BY cases.created_at ASC LIMIT 1) WHERE created_by IS NULL'); } catch(e) {}
 
 // Auth middleware
 function auth(req, res, next) {
@@ -54,6 +56,63 @@ function superAdminOnly(req, res, next) {
     return res.status(403).json({ error: 'Super admin only' });
   }
   next();
+}
+
+// Row-level visibility: returns the set of user ids whose patients and
+// cases the requester may see, or null for unrestricted (super_admin).
+//   hospital  -> itself + assigned doctors + their assistants
+//   doctor    -> itself + colleagues under the same admin + their assistants
+//   assistant -> itself + its own doctor + that doctor's branch
+//   legacy admin / unknown -> just itself
+function orgMemberIds(user) {
+  const r = user;
+  const out = [];
+  if (r.role === 'super_admin') return null;
+  const byAdmin = (adminId) => db.prepare('SELECT id FROM users WHERE assigned_admin_id=?').all(adminId).map(x => x.id);
+  const byDoctor = (docIds) => {
+    if (!docIds.length) return [];
+    const ph = docIds.map(() => '?').join(',');
+    return db.prepare('SELECT id FROM users WHERE assigned_doctor_id IN (' + ph + ')').all(...docIds).map(x => x.id);
+  };
+  if (r.role === 'hospital') {
+    const docs = byAdmin(r.id);
+    out.push(r.id, ...docs, ...byDoctor(docs));
+  } else if (r.role === 'doctor') {
+    const docs = r.assigned_admin_id ? byAdmin(r.assigned_admin_id) : [];
+    if (!docs.includes(r.id)) docs.push(r.id);
+    out.push(...docs, ...byDoctor(docs));
+  } else if (r.role === 'assistant') {
+    const adminId = r.assigned_doctor_id
+      ? (db.prepare('SELECT assigned_admin_id FROM users WHERE id=?').get(r.assigned_doctor_id) || {}).assigned_admin_id
+      : null;
+    let docs;
+    if (adminId) {
+      docs = byAdmin(adminId);
+      if (!docs.includes(r.assigned_doctor_id)) docs.push(r.assigned_doctor_id);
+    } else if (r.assigned_doctor_id) {
+      docs = [r.assigned_doctor_id];
+    } else {
+      docs = [];
+    }
+    out.push(r.id, ...docs, ...byDoctor(docs));
+  } else {
+    out.push(r.id);
+  }
+  return [...new Set(out)];
+}
+
+function canAccessPatient(user, patientId) {
+  const ids = orgMemberIds(user);
+  if (!ids) return true;
+  const ph = ids.map(() => '?').join(',');
+  return !!db.prepare('SELECT 1 FROM patients p WHERE p.id=? AND (p.created_by IN (' + ph + ') OR EXISTS (SELECT 1 FROM cases c WHERE c.patient_id=p.id AND c.doctor_id IN (' + ph + ')))').get(patientId, ...ids, ...ids);
+}
+
+function canAccessCase(user, caseId) {
+  const ids = orgMemberIds(user);
+  if (!ids) return true;
+  const ph = ids.map(() => '?').join(',');
+  return !!db.prepare('SELECT 1 FROM cases WHERE id=? AND doctor_id IN (' + ph + ')').get(caseId, ...ids);
 }
 
 // ===== AUTH ROUTES =====
@@ -97,7 +156,21 @@ app.get('/api/auth/me', auth, (req, res) => {
 
 // ===== USERS ROUTES =====
 app.get('/api/users', auth, (req, res) => {
-  const users = db.prepare('SELECT id,email,full_name,role,approved,assigned_admin_id,assigned_doctor_id,phone,doctor_id,hospital_name,created_at FROM users').all();
+  const cols = 'id,email,full_name,role,approved,assigned_admin_id,assigned_doctor_id,phone,doctor_id,hospital_name,created_at';
+  let users;
+  const r = req.user;
+  if (r.role === 'super_admin') {
+    users = db.prepare('SELECT ' + cols + ' FROM users ORDER BY created_at DESC').all();
+  } else {
+    const ids = orgMemberIds(r);
+    const ph = ids.map(() => '?').join(',');
+    // Non-super users additionally need contactable staff (CMO, hospitals,
+    // and for doctors/assistants their peers) for the request-to-join UI.
+    let extra = " OR role='super_admin'";
+    if (r.role === 'doctor') extra += " OR role='hospital'";
+    if (r.role === 'assistant') extra += " OR role='hospital' OR role='doctor'";
+    users = db.prepare('SELECT ' + cols + ' FROM users WHERE id IN (' + ph + ')' + extra + ' ORDER BY created_at DESC').all(...ids);
+  }
   res.json({ users });
 });
 
@@ -131,7 +204,14 @@ app.delete('/api/users/:id', auth, superAdminOnly, (req, res) => {
 
 // ===== PATIENTS ROUTES =====
 app.get('/api/patients', auth, (req, res) => {
-  const patients = db.prepare('SELECT * FROM patients ORDER BY created_at DESC').all();
+  const ids = orgMemberIds(req.user);
+  let patients;
+  if (!ids) {
+    patients = db.prepare('SELECT * FROM patients ORDER BY created_at DESC').all();
+  } else {
+    const ph = ids.map(() => '?').join(',');
+    patients = db.prepare('SELECT * FROM patients WHERE created_by IN (' + ph + ') OR EXISTS (SELECT 1 FROM cases c WHERE c.patient_id = patients.id AND c.doctor_id IN (' + ph + ')) ORDER BY created_at DESC').all(...ids, ...ids);
+  }
   res.json({ patients });
 });
 
@@ -139,7 +219,7 @@ app.post('/api/patients', auth, (req, res) => {
   const { name, age, gender, contact, abha_id } = req.body;
   if (!name || !age || !gender || !contact) return res.status(400).json({ error: 'Missing required fields' });
   const id = uuid();
-  db.prepare('INSERT INTO patients (id,name,age,gender,contact,abha_id) VALUES (?,?,?,?,?,?)').run(id, name, age, gender, contact, abha_id || null);
+  db.prepare('INSERT INTO patients (id,name,age,gender,contact,abha_id,created_by) VALUES (?,?,?,?,?,?,?)').run(id, name, age, gender, contact, abha_id || null, req.user.id);
   const patient = db.prepare('SELECT * FROM patients WHERE id=?').get(id);
   res.json({ patient });
 });
@@ -147,20 +227,28 @@ app.post('/api/patients', auth, (req, res) => {
 app.get('/api/patients/:id', auth, (req, res) => {
   const patient = db.prepare('SELECT * FROM patients WHERE id=?').get(req.params.id);
   if (!patient) return res.status(404).json({ error: 'Patient not found' });
+  if (!canAccessPatient(req.user, patient.id)) return res.status(403).json({ error: 'Forbidden' });
   res.json({ patient });
 });
 
 // ===== CASES ROUTES =====
 app.get('/api/cases', auth, (req, res) => {
-  const cases = db.prepare(`
+  const ids = orgMemberIds(req.user);
+  const sel = `
     SELECT c.*, p.name as patient_name, u.full_name as doctor_name,
            au.full_name as admin_name
     FROM cases c
     LEFT JOIN patients p ON c.patient_id = p.id
     LEFT JOIN users u ON c.doctor_id = u.id
     LEFT JOIN users au ON u.assigned_admin_id = au.id
-    ORDER BY c.created_at DESC
-  `).all();
+  `;
+  let cases;
+  if (!ids) {
+    cases = db.prepare(sel + ' ORDER BY c.created_at DESC').all();
+  } else {
+    const ph = ids.map(() => '?').join(',');
+    cases = db.prepare(sel + ' WHERE c.doctor_id IN (' + ph + ') ORDER BY c.created_at DESC').all(...ids);
+  }
   res.json({ cases });
 });
 
@@ -176,17 +264,20 @@ app.get('/api/cases/:id', auth, (req, res) => {
     WHERE c.id=?
   `).get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Case not found' });
+  if (!canAccessCase(req.user, c.id)) return res.status(403).json({ error: 'Forbidden' });
   res.json({ case: c });
 });
 
 app.get('/api/patients/:id/cases', auth, (req, res) => {
-  const cases = db.prepare(`
-    SELECT c.*, u.full_name as doctor_name
-    FROM cases c
-    LEFT JOIN users u ON c.doctor_id = u.id
-    WHERE c.patient_id=?
-    ORDER BY c.created_at DESC
-  `).all(req.params.id);
+  if (!canAccessPatient(req.user, req.params.id)) return res.status(403).json({ error: 'Forbidden' });
+  const ids = orgMemberIds(req.user);
+  let cases;
+  if (!ids) {
+    cases = db.prepare('SELECT c.*, u.full_name as doctor_name FROM cases c LEFT JOIN users u ON c.doctor_id = u.id WHERE c.patient_id=? ORDER BY c.created_at DESC').all(req.params.id);
+  } else {
+    const ph = ids.map(() => '?').join(',');
+    cases = db.prepare('SELECT c.*, u.full_name as doctor_name FROM cases c LEFT JOIN users u ON c.doctor_id = u.id WHERE c.patient_id=? AND c.doctor_id IN (' + ph + ') ORDER BY c.created_at DESC').all(req.params.id, ...ids);
+  }
   res.json({ cases });
 });
 
@@ -318,6 +409,7 @@ app.put('/api/cases/:id', auth, (req, res) => {
     if (req.user.role !== 'doctor' && req.user.role !== 'assistant' && req.user.role !== 'super_admin') {
       return res.status(403).json({ error: 'Only doctors and assistants can update case status' });
     }
+    if (!canAccessCase(req.user, req.params.id)) return res.status(403).json({ error: 'Forbidden' });
     db.prepare('UPDATE cases SET status=? WHERE id=?').run(updates.status, req.params.id);
   }
   res.json({ success: true });
@@ -341,7 +433,15 @@ app.patch('/api/cases/:id/status', auth, (req, res) => {
 app.get('/api/patients/:id/history', auth, (req, res) => {
   const patient = db.prepare('SELECT * FROM patients WHERE id=?').get(req.params.id);
   if (!patient) return res.status(404).json({ error: 'Patient not found' });
-  const cases = db.prepare("SELECT c.*, u.full_name as doctor_name, au.full_name as admin_name FROM cases c LEFT JOIN users u ON c.doctor_id = u.id LEFT JOIN users au ON u.assigned_admin_id = au.id WHERE c.patient_id = ? ORDER BY c.created_at DESC").all(req.params.id);
+  if (!canAccessPatient(req.user, patient.id)) return res.status(403).json({ error: 'Forbidden' });
+  const ids = orgMemberIds(req.user);
+  let cases;
+  if (!ids) {
+    cases = db.prepare("SELECT c.*, u.full_name as doctor_name, au.full_name as admin_name FROM cases c LEFT JOIN users u ON c.doctor_id = u.id LEFT JOIN users au ON u.assigned_admin_id = au.id WHERE c.patient_id = ? ORDER BY c.created_at DESC").all(req.params.id);
+  } else {
+    const ph = ids.map(() => '?').join(',');
+    cases = db.prepare("SELECT c.*, u.full_name as doctor_name, au.full_name as admin_name FROM cases c LEFT JOIN users u ON c.doctor_id = u.id LEFT JOIN users au ON u.assigned_admin_id = au.id WHERE c.patient_id = ? AND c.doctor_id IN (" + ph + ") ORDER BY c.created_at DESC").all(req.params.id, ...ids);
+  }
   res.json({ patient, cases });
 });
 
