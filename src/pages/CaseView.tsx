@@ -51,7 +51,12 @@ export default function CaseView() {
   const { t } = useTranslation()
   const { profile } = useAuth()
   const isDoctor = profile?.role === 'doctor' || profile?.role === 'assistant'
+  const isDoctorRole = profile?.role === 'doctor'
   const isAdmin = profile?.role === 'super_admin' || profile?.role === 'hospital' || profile?.role === 'admin'
+  const [editingPlan, setEditingPlan] = useState(false)
+  const [planDraft, setPlanDraft] = useState('')
+  const [planError, setPlanError] = useState('')
+  const [savingPlan, setSavingPlan] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -81,8 +86,35 @@ export default function CaseView() {
   async function toggleStatus() {
     if (!caseRecord) return
     const newStatus = (caseRecord.status || 'ongoing') === 'closed' ? 'ongoing' : 'closed'
-    await supabase.from('cases').update({ status: newStatus }).eq('id', caseRecord.id)
-    setCaseRecord({ ...caseRecord, status: newStatus })
+    const { error } = await supabase.from('cases').update({ status: newStatus }).eq('id', caseRecord.id)
+    if (!error) setCaseRecord({ ...caseRecord, status: newStatus })
+  }
+
+  function startEditPlan() {
+    if (!caseRecord) return
+    setPlanDraft(caseRecord.treatment_plan || '')
+    setPlanError('')
+    setEditingPlan(true)
+  }
+
+  async function saveTreatmentPlan() {
+    if (!caseRecord) return
+    const trimmed = planDraft.trim()
+    if (!trimmed) {
+      setPlanError('Treatment plan cannot be empty. Clear it with Cancel if not needed.')
+      return
+    }
+    setSavingPlan(true)
+    const { error } = await supabase.from('cases').update({ treatment_plan: trimmed }).eq('id', caseRecord.id)
+    setSavingPlan(false)
+    if (error) {
+      setPlanError('Save failed: ' + error.message)
+      return
+    }
+    setCaseRecord({ ...caseRecord, treatment_plan: trimmed })
+    setEditingPlan(false)
+    setPlanError('')
+    window.dispatchEvent(new Event('ayush-stats-changed'))
   }
 
   if (loading) return <div className="text-center py-12 text-gray-500">{t("loading")}...</div>
@@ -113,6 +145,7 @@ export default function CaseView() {
         <div className="text-center border-b border-gray-200 pb-4">
           <h2 className="text-2xl font-bold text-gray-900">{t("app_name")} Case File</h2>
           <p className="text-sm text-gray-500 capitalize">{caseRecord.stream} | {new Date(caseRecord.created_at).toLocaleDateString('en-IN')}</p>
+          <p className="text-xs text-gray-400 font-mono mt-1">Case ID: {caseRecord.id}</p>
           <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${(caseRecord.status || 'ongoing') === 'closed' ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}>
             {(caseRecord.status || 'ongoing') === 'closed' ? 'Closed' : 'Ongoing'}
           </span>
@@ -184,9 +217,48 @@ export default function CaseView() {
           </Section>
         )}
 
-        {caseRecord.treatment_plan && (
+        {(caseRecord.treatment_plan || isDoctorRole) && (
           <Section title="Treatment Plan">
-            <p className="text-gray-700 whitespace-pre-wrap">{caseRecord.treatment_plan}</p>
+            {!editingPlan && (
+              <div className="flex items-start gap-3">
+                <p className="text-gray-700 whitespace-pre-wrap flex-1">
+                  {caseRecord.treatment_plan ? caseRecord.treatment_plan : 'No treatment plan yet.'}
+                </p>
+                {isDoctorRole && (
+                  <button onClick={startEditPlan} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium whitespace-nowrap">
+                    {caseRecord.treatment_plan ? 'Edit' : 'Add'} Plan
+                  </button>
+                )}
+              </div>
+            )}
+            {editingPlan && (
+              <div className="space-y-3">
+                <textarea
+                  value={planDraft}
+                  onChange={(e) => setPlanDraft(e.target.value)}
+                  rows={5}
+                  autoFocus
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-y"
+                  placeholder="Treatment plan details"
+                />
+                {planError && <p className="text-sm text-red-600">{planError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveTreatmentPlan}
+                    disabled={savingPlan || !planDraft.trim()}
+                    className="px-4 py-1.5 bg-emerald-600 text-white text-sm rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {savingPlan ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => { setEditingPlan(false); setPlanError('') }}
+                    className="px-4 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </Section>
         )}
 

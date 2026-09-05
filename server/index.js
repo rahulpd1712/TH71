@@ -362,15 +362,24 @@ app.put('/api/assignment_requests/:id', auth, (req, res) => {
 });
 
 
-// Update case status (ongoing/closed) - doctors and assistants only
+// Update case fields (status, treatment_plan) - doctors, assistants and super admins,
+// restricted to cases the requester can access.
 app.put('/api/cases/:id', auth, (req, res) => {
-  const updates = req.body;
-  if (updates.status && ['ongoing', 'closed'].includes(updates.status)) {
-    if (req.user.role !== 'doctor' && req.user.role !== 'assistant' && req.user.role !== 'super_admin') {
-      return res.status(403).json({ error: 'Only doctors and assistants can update case status' });
+  const updates = req.body || {};
+  if (req.user.role !== 'doctor' && req.user.role !== 'assistant' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Only doctors and assistants can update cases' });
+  }
+  if (!canAccessCase(req.user, req.params.id)) return res.status(403).json({ error: 'Forbidden' });
+  if (updates.status !== undefined) {
+    if (!['ongoing', 'closed'].includes(updates.status)) {
+      return res.status(400).json({ error: 'Status must be ongoing or closed' });
     }
-    if (!canAccessCase(req.user, req.params.id)) return res.status(403).json({ error: 'Forbidden' });
     db.prepare('UPDATE cases SET status=? WHERE id=?').run(updates.status, req.params.id);
+  }
+  if (updates.treatment_plan !== undefined) {
+    const plan = typeof updates.treatment_plan === 'string' ? updates.treatment_plan.trim() : '';
+    if (plan.length > 10000) return res.status(400).json({ error: 'Treatment plan is too long' });
+    db.prepare('UPDATE cases SET treatment_plan=? WHERE id=?').run(plan || null, req.params.id);
   }
   res.json({ success: true });
 });

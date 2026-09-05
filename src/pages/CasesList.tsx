@@ -15,6 +15,9 @@ interface CaseRow {
   status: string | null
   created_at: string
   patient_name?: string
+  patient_age?: number | null
+  patient_gender?: string | null
+  patient_contact?: string | null
   patient_abha?: string | null
   doctor_name?: string
   admin_name?: string
@@ -54,12 +57,12 @@ export default function CasesList() {
     const { data } = await supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(200)
     const casesList = (data || []) as any[]
 
-    // Fetch patient names and ABHA IDs
+    // Fetch patient demographics for the case rows
     const patientIds = [...new Set(casesList.map((c: any) => c.patient_id).filter(Boolean))]
-    let patientMap: Record<string, { name: string; abha_id: string | null }> = {}
+    let patientMap: Record<string, { name: string; age: number | null; gender: string | null; contact: string | null; abha_id: string | null }> = {}
     if (patientIds.length > 0) {
-      const { data: pts } = await supabase.from('patients').select('id, name, abha_id')
-      if (pts) pts.forEach((p: any) => { patientMap[p.id] = { name: p.name, abha_id: p.abha_id } })
+      const { data: pts } = await supabase.from('patients').select('id, name, age, gender, contact, abha_id')
+      if (pts) pts.forEach((p: any) => { patientMap[p.id] = { name: p.name, age: p.age ?? null, gender: p.gender ?? null, contact: p.contact ?? null, abha_id: p.abha_id ?? null } })
     }
 
     // Fetch doctor names
@@ -84,6 +87,9 @@ export default function CasesList() {
     const enriched = casesList.map((c: any) => ({
       ...c,
       patient_name: patientMap[c.patient_id]?.name || 'Unknown',
+      patient_age: patientMap[c.patient_id]?.age ?? null,
+      patient_gender: patientMap[c.patient_id]?.gender ?? null,
+      patient_contact: patientMap[c.patient_id]?.contact ?? null,
       patient_abha: patientMap[c.patient_id]?.abha_id || null,
       doctor_name: doctorMap[c.doctor_id] || 'Unknown',
       admin_name: doctorAdminMap[c.doctor_id] || 'Unassigned'
@@ -197,6 +203,9 @@ export default function CasesList() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   {!isAdmin && <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("patient_name")}</th>}
+                  {!isAdmin && <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("age")}</th>}
+                  {!isAdmin && <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("gender")}</th>}
+                  {!isAdmin && <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("contact")}</th>}
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Case ID</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("stream")}</th>
                   {!isAdmin && <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">{t("diagnosis")}</th>}
@@ -210,6 +219,9 @@ export default function CasesList() {
                 {cases.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50">
                     {!isAdmin && <td className="px-4 py-3 font-medium text-gray-900">{c.patient_name}</td>}
+                    {!isAdmin && <td className="px-4 py-3 text-gray-600">{c.patient_age ?? '—'}</td>}
+                    {!isAdmin && <td className="px-4 py-3 text-gray-600">{c.patient_gender ?? '—'}</td>}
+                    {!isAdmin && <td className="px-4 py-3 text-gray-600">{c.patient_contact ?? '—'}</td>}
                     <td className="px-4 py-3 text-xs text-gray-500 font-mono">{c.id.slice(0, 8)}...</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${streamColors[c.stream] || ''}`}>{c.stream}</span>
