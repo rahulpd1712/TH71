@@ -30,22 +30,25 @@ export default function AdminDashboard() {
   const [streamData, setStreamData] = useState<StreamCount[]>([])
     const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
   const [approving, setApproving] = useState<string | null>(null)
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => { loadStats() }, [])
 
   async function loadStats() {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 7)
+    const todayStart = new Date()
+    todayStart.setUTCHours(0, 0, 0, 0)
+    const weekAgo = new Date(Date.now() - 7 * 86400000)
+
+    // Server stores timestamps as SQLite datetime('now') => 'YYYY-MM-DD HH:MM:SS' (UTC)
+    const fmt = (d: Date) => d.toISOString().replace('T', ' ').slice(0, 19)
 
     const { count: patientsToday } = await supabase
       .from('patients').select('*', { count: 'exact', head: true })
-      .gte('created_at', today.toISOString())
+      .gte('created_at', fmt(todayStart))
 
     const { count: casesThisWeek } = await supabase
       .from('cases').select('*', { count: 'exact', head: true })
-      .gte('created_at', weekAgo.toISOString())
+      .gte('created_at', fmt(weekAgo))
 
     const { count: totalCases } = await supabase
       .from('cases').select('*', { count: 'exact', head: true })
@@ -65,9 +68,7 @@ export default function AdminDashboard() {
       })))
     }
 
-    
-
-    // Load pending admin approvals (super_admin only)
+    // Load pending approvals (super_admin only)
     if (isSuperAdmin) {
       const { data: pending } = await supabase
         .from('users')
@@ -79,18 +80,21 @@ export default function AdminDashboard() {
   }
 
   async function approveUser(userId: string) {
+    setActionError('')
     setApproving(userId)
-    await supabase.from('users').update({ approved: true }).eq('id', userId)
-    setPendingUsers(prev => prev.filter(u => u.id !== userId))
+    const { error } = await supabase.from('users').update({ approved: true }).eq('id', userId)
     setApproving(null)
+    if (error) { setActionError('Approve failed: ' + error.message); return }
+    setPendingUsers(prev => prev.filter(u => u.id !== userId))
   }
 
   async function rejectUser(userId: string) {
+    setActionError('')
     setApproving(userId)
-    // Delete the auth user and profile
-    await supabase.from('users').delete().eq('id', userId)
-    setPendingUsers(prev => prev.filter(u => u.id !== userId))
+    const { error } = await supabase.from('users').delete().eq('id', userId)
     setApproving(null)
+    if (error) { setActionError('Reject failed: ' + error.message); return }
+    setPendingUsers(prev => prev.filter(u => u.id !== userId))
   }
 
   return (
@@ -112,6 +116,9 @@ export default function AdminDashboard() {
             <ShieldCheck className="h-5 w-5 text-indigo-600" />
             <h3 className="font-semibold text-gray-900">{t("admin_approval_requests")}</h3>
           </div>
+          {actionError && (
+            <div className="bg-red-50 text-red-700 px-4 py-2.5 rounded-lg text-sm border border-red-200 mb-4">{actionError}</div>
+          )}
           {pendingUsers.length === 0 ? (
             <div className="text-center py-6 text-gray-400">
               <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-400" />

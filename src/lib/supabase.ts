@@ -106,9 +106,19 @@ class QueryBuilder implements PromiseLike<{ data: any; error: any }> {
   private async doUpdate() {
     const f = this.filters.find(f => f.op === '=');
     if (!f) return { data: null, error: { message: 'No eq filter' } };
+    const body = this.updateData;
     let endpoint = '/api/' + this.table + '/' + f.val;
-    if (this.table === 'users') endpoint = '/api/users/' + f.val + '/assign';
-    const { data, error } = await apiFetch(endpoint, { method: 'PUT', body: JSON.stringify(this.updateData) });
+    if (this.table === 'users') {
+      if (body && ('assigned_admin_id' in body || 'assigned_doctor_id' in body)) {
+        endpoint = '/api/users/' + f.val + '/assign';
+      } else if (body && 'approved' in body) {
+        endpoint = '/api/users/' + f.val + '/approve';
+      }
+    } else if (this.table === 'notifications') {
+      const hasId = this.filters.some(x => x.op === '=' && x.col === 'id');
+      endpoint = hasId ? '/api/notifications/' + f.val + '/read' : '/api/notifications/read-all';
+    }
+    const { data, error } = await apiFetch(endpoint, { method: 'PUT', body: JSON.stringify(body) });
     if (error) return { data: null, error };
     return { data, error: null };
   }

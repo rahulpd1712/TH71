@@ -115,6 +115,18 @@ app.put('/api/users/:id/approve', auth, superAdminOnly, (req, res) => {
   res.json({ success: true });
 });
 
+app.delete('/api/users/:id', auth, superAdminOnly, (req, res) => {
+  try {
+    const existing = db.prepare('SELECT id FROM users WHERE id=?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'User not found' });
+    db.prepare('DELETE FROM users WHERE id=?').run(req.params.id);
+    res.json({ success: true });
+  } catch(e) {
+    // e.g. foreign-key references from cases/assignment_requests
+    res.status(400).json({ error: 'Cannot delete user: ' + e.message });
+  }
+});
+
 // ===== PATIENTS ROUTES =====
 app.get('/api/patients', auth, (req, res) => {
   const patients = db.prepare('SELECT * FROM patients ORDER BY created_at DESC').all();
