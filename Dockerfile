@@ -1,6 +1,10 @@
 # ---- Stage 1: build the frontend ----
-FROM node:22-slim AS build
+FROM node:22 AS build
 WORKDIR /app
+
+# Skip Electron's binary download: it is a devDependency only needed for
+# the desktop app, not for building the web frontend.
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 
 COPY package.json package-lock.json ./
 COPY server/package.json server/package.json
@@ -10,7 +14,7 @@ COPY . .
 RUN npm run build
 
 # ---- Stage 2: production image ----
-FROM node:22-slim
+FROM node:22
 WORKDIR /app
 ENV NODE_ENV=production
 
