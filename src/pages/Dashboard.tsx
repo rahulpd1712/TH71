@@ -18,13 +18,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function loadStats() {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 7)
+      const todayStart = new Date()
+      todayStart.setUTCHours(0, 0, 0, 0)
+      const weekAgo = new Date(Date.now() - 7 * 86400000)
+      // Server stores timestamps as SQLite datetime('now') => 'YYYY-MM-DD HH:MM:SS' (UTC)
+      const fmt = (d: Date) => d.toISOString().replace('T', ' ').slice(0, 19)
 
-      const { count: patientsToday } = await supabase.from('patients').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString())
-      const { count: casesThisWeek } = await supabase.from('cases').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString())
+      const { count: patientsToday } = await supabase.from('patients').select('*', { count: 'exact', head: true }).gte('created_at', fmt(todayStart))
+      const { count: casesThisWeek } = await supabase.from('cases').select('*', { count: 'exact', head: true }).gte('created_at', fmt(weekAgo))
       setStats({ patientsToday: patientsToday || 0, casesThisWeek: casesThisWeek || 0 })
     }
     loadStats()
