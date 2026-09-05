@@ -22,10 +22,6 @@ export default function PatientsList() {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  useEffect(() => {
-    loadPatients()
-  }, [])
-
   async function loadPatients() {
     setLoading(true)
     let query = supabase

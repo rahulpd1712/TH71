@@ -16,7 +16,7 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     full_name TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'doctor' CHECK(role IN ('super_admin','admin','hospital',1,'doctor',1,'assistant')),
+    role TEXT NOT NULL DEFAULT 'doctor' CHECK(role IN ('super_admin','admin','hospital','doctor','assistant')),
     approved INTEGER NOT NULL DEFAULT 0,
     assigned_admin_id TEXT REFERENCES users(id),
     assigned_doctor_id TEXT REFERENCES users(id),

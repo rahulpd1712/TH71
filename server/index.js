@@ -302,46 +302,6 @@ app.post('/api/cases', auth, (req, res) => {
   res.json({ case: c });
 });
 
-// ===== ASSIGNMENT REQUESTS =====
-app.get('/api/assignment-requests', auth, (req, res) => {
-  const requests = db.prepare(`
-    SELECT ar.*, fu.full_name as from_user_name, tu.full_name as to_user_name
-    FROM assignment_requests ar
-    LEFT JOIN users fu ON ar.from_user_id = fu.id
-    LEFT JOIN users tu ON ar.to_user_id = tu.id
-    WHERE ar.from_user_id=? OR ar.to_user_id=?
-    ORDER BY ar.created_at DESC
-  
-  `).all(req.user.id, req.user.id);
-  res.json({ requests });
-});
-
-app.post('/api/assignment-requests', auth, (req, res) => {
-  const { to_user_id, request_type, reason } = req.body;
-  const id = uuid();
-  db.prepare('INSERT INTO assignment_requests (id,from_user_id,to_user_id,request_type,reason) VALUES (?,?,?,?,?)').run(id, req.user.id, to_user_id, request_type, reason || null);
-  const notifId = uuid();
-  db.prepare('INSERT INTO notifications (id,user_id,title,message,type,link) VALUES (?,?,?,?,?,?)').run(notifId, to_user_id, 'New Assignment Request', req.user.full_name + ' wants to join you', 'info', '/users');
-  res.json({ request: db.prepare('SELECT * FROM assignment_requests WHERE id=?').get(id) });
-});
-
-app.put('/api/assignment-requests/:id', auth, (req, res) => {
-  const { status } = req.body;
-  const ar = db.prepare('SELECT * FROM assignment_requests WHERE id=?').get(req.params.id);
-  if (!ar) return res.status(404).json({ error: 'Request not found' });
-  db.prepare('UPDATE assignment_requests SET status=?, resolved_at=datetime("now"), resolved_by=? WHERE id=?').run(status, req.user.id, req.params.id);
-  if (status === 'approved') {
-    if (ar.request_type === 'doctor_to_admin') {
-      db.prepare('UPDATE users SET assigned_admin_id=? WHERE id=?').run(ar.to_user_id, ar.from_user_id);
-    } else {
-      db.prepare('UPDATE users SET assigned_doctor_id=? WHERE id=?').run(ar.to_user_id, ar.from_user_id);
-    }
-  }
-  const notifId = uuid();
-  db.prepare('INSERT INTO notifications (id,user_id,title,message,type,link) VALUES (?,?,?,?,?,?)').run(notifId, ar.from_user_id, 'Request ' + status, 'Your assignment request has been ' + status, status === 'approved' ? 'success' : 'error', '/users');
-  res.json({ success: true });
-});
-
 app.get('/api/notifications', auth, (req, res) => {
   const notifications = db.prepare('SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 50').all(req.user.id);
   res.json({ notifications });
