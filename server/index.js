@@ -360,7 +360,7 @@ app.put('/api/assignment_requests/:id', auth, (req, res) => {
   if (ar.to_user_id !== req.user.id && ar.from_user_id !== req.user.id && req.user.role !== 'super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  db.prepare('UPDATE assignment_requests SET status=?, resolved_at=datetime("now"), resolved_by=? WHERE id=?').run(status, req.user.id, req.params.id);
+  db.prepare("UPDATE assignment_requests SET status=?, resolved_at=datetime('now'), resolved_by=? WHERE id=?").run(status, req.user.id, req.params.id);
   if (status === 'approved') {
     if (ar.request_type === 'doctor_to_admin') {
       db.prepare('UPDATE users SET assigned_admin_id=? WHERE id=?').run(ar.to_user_id, ar.from_user_id);
