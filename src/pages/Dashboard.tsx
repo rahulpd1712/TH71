@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
-import { UserPlus, FileText, Users, Activity } from 'lucide-react'
+import { UserPlus, FileText, Users } from 'lucide-react'
 
 interface Stats {
   patientsToday: number
@@ -29,9 +29,18 @@ export default function Dashboard() {
       setStats({ patientsToday: patientsToday || 0, casesThisWeek: casesThisWeek || 0 })
     }
     loadStats()
+    // Re-fetch when the window regains focus or after a registration/case event
+    const onFocus = () => loadStats()
+    const onChanged = () => loadStats()
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('ayush-stats-changed', onChanged)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('ayush-stats-changed', onChanged)
+    }
   }, [])
 
-  const displayName = profile?.role === 'super_admin' ? 'CMO' : profile?.role === 'hospital' ? 'Hospital' : profile?.full_name || ''
+  const displayName = profile?.full_name || (profile?.role === 'super_admin' ? 'CMO' : profile?.role === 'hospital' ? 'Hospital' : '')
 
   return (
     <div className="space-y-6">
@@ -101,31 +110,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Quick Start */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <Activity className="h-5 w-5 text-[#1a237e]" />
-          <h3 className="font-semibold text-gray-900">Quick Start</h3>
-        </div>
-        <div className="space-y-2">
-          {(profile?.role === 'doctor' || profile?.role === 'assistant') && (
-            <button onClick={() => navigate('/patients/new')} className="w-full text-left p-3 rounded-lg hover:bg-gray-50 flex items-center gap-3 transition-colors">
-              <div className="bg-[#138808]/10 p-2 rounded-lg"><UserPlus className="h-4 w-4 text-[#138808]" /></div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">{t("register_new_patient")}</p>
-                <p className="text-xs text-gray-500">{t("register_desc")}</p>
-              </div>
-            </button>
-          )}
-          <button onClick={() => navigate('/cases')} className="w-full text-left p-3 rounded-lg hover:bg-gray-50 flex items-center gap-3 transition-colors">
-            <div className="bg-[#FF9933]/10 p-2 rounded-lg"><FileText className="h-4 w-4 text-[#FF9933]" /></div>
-            <div>
-              <p className="text-sm font-medium text-gray-900">{t("view_cases")}</p>
-              <p className="text-xs text-gray-500">Review past case files</p>
-            </div>
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

@@ -331,7 +331,14 @@ app.get('/api/stats', auth, (req, res) => {
 
 
 app.get('/api/assignment_requests', auth, (req, res) => {
-  const requests = db.prepare("SELECT ar.*, fu.full_name as from_user_name, tu.full_name as to_user_name FROM assignment_requests ar LEFT JOIN users fu ON ar.from_user_id = fu.id LEFT JOIN users tu ON ar.to_user_id = tu.id WHERE ar.from_user_id = ? OR ar.to_user_id = ? ORDER BY ar.created_at DESC").all(req.user.id, req.user.id);
+  const base = "SELECT ar.*, fu.full_name as from_user_name, tu.full_name as to_user_name FROM assignment_requests ar LEFT JOIN users fu ON ar.from_user_id = fu.id LEFT JOIN users tu ON ar.to_user_id = tu.id";
+  let requests;
+  if (req.user.role === 'super_admin') {
+    // The CMO oversees all assignment/transfer requests
+    requests = db.prepare(base + ' ORDER BY ar.created_at DESC').all();
+  } else {
+    requests = db.prepare(base + ' WHERE ar.from_user_id = ? OR ar.to_user_id = ? ORDER BY ar.created_at DESC').all(req.user.id, req.user.id);
+  }
   res.json({ requests });
 });
 
@@ -348,6 +355,10 @@ app.put('/api/assignment_requests/:id', auth, (req, res) => {
   const { status } = req.body;
   const ar = db.prepare('SELECT * FROM assignment_requests WHERE id=?').get(req.params.id);
   if (!ar) return res.status(404).json({ error: 'Request not found' });
+  // Only the request participants (requester or target) or the CMO may resolve it
+  if (ar.to_user_id !== req.user.id && ar.from_user_id !== req.user.id && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   db.prepare('UPDATE assignment_requests SET status=?, resolved_at=datetime("now"), resolved_by=? WHERE id=?').run(status, req.user.id, req.params.id);
   if (status === 'approved') {
     if (ar.request_type === 'doctor_to_admin') {

@@ -174,9 +174,6 @@ export default function UserManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">{t("user_management")}</h1>
-        {isSuperAdmin && (
-          <button onClick={() => fetchData()} className="text-sm text-emerald-600 hover:text-emerald-800">{t("search")}</button>
-        )}
       </div>
 
       {/* Stats */}
