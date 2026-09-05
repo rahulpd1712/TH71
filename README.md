@@ -51,11 +51,35 @@ The app is packaged as a single Docker service (frontend build + API + SQLite), 
 
 > **Free plan caveats:** free instances sleep after 15 minutes of inactivity (the first visit takes ~30s to wake up), and the free plan has **no persistent disk** — the database resets to demo data whenever the instance is recycled or the service is redeployed. That's fine for testing/demos. To keep real data, upgrade to a paid plan and add a disk mounted at `/app/server/data` (the `render.yaml` has the block ready to uncomment).
 
+## Backing up the database
+
+Backups use SQLite's online backup API, so they are safe to run **while the server is running** (WAL mode is handled correctly) and always produce a consistent snapshot.
+
+**Run one manually:**
+
+```bash
+npm run backup            # or: ./backup.sh on Linux/macOS, backup.bat on Windows
+```
+
+A timestamped copy is written to `server/data/backups/ayush-YYYYMMDDHHmmss.db` (overridable with `BACKUP_DIR`), keeping the newest 7 by default (`BACKUP_KEEP`).
+
+**Schedule it:**
+
+- **Linux/macOS (cron)** — run daily at 3 AM (edit with `crontab -e`):
+  ```
+  0 3 * * * cd /path/to/your/app && /usr/bin/node scripts/backup.js >> backups.log 2>&1
+  ```
+- **Windows (Task Scheduler)** — create a task that runs daily, action = run `backup.bat`, start in the project folder. (Or a systemd timer instead of cron if you prefer.)
+
+**Important — off-site copies:** a backup on the same disk does not protect against disk failure or (on Render's free plan) instance recycling. Copy backups somewhere separate — download them from the Render dashboard Shell, or add a small job that uploads `server/data/backups/` to Google Drive, S3, etc. The database contains patient records and ABHA IDs, so protect backups accordingly.
+
+**Restore:** stop the server, replace `server/data/ayush.db` with the backup file, delete any `ayush.db-wal` / `ayush.db-shm` files left next to it, then start the server again.
+
 ## Going live checklist
 
-- [ ] Set a strong, secret `JWT_SECRET` environment variable (production only — the code falls back to a local-dev secret otherwise).
+- [ ] Set a strong, secret `JWT_SECRET` environment variable — the server **refuses to start** without it when `NODE_ENV=production` (the local-dev fallback only applies in development). Generate one with `openssl rand -hex 32`.
 - [ ] Enable a **persistent disk** for `server/data` (Render paid plan, Railway volume, or a VPS).
-- [ ] Set up **backups** of the SQLite file (e.g., a daily scheduled `sqlite3 .backup` or copying `ayush.db` to storage) — patient records and ABHA IDs must not be lost.
+- [ ] Schedule **backups** (see [Backing up the database](#backing-up-the-database)) and copy them off the server — patient records and ABHA IDs must not be lost.
 - [ ] Change or remove the demo accounts, and never commit the database file (`server/data/` is gitignored).
 - [ ] Serve over HTTPS (Render provides it automatically; on a VPS use Caddy/Nginx).
 

@@ -9,6 +9,11 @@ const { db, uuid, seedDatabase } = require('./db');
 const app = express();
 const PORT = parseInt(process.env.PORT) || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'ayush-secret-key-local';
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('[FATAL] JWT_SECRET is required in production. Set a strong random value, e.g.:');
+  console.error('  JWT_SECRET="$(openssl rand -hex 32)" npm start');
+  process.exit(1);
+}
 
 app.use(cors());
 app.use(express.json());

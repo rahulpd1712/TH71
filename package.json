@@ -11,7 +11,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "start": "node server/index.js",
-    "seed": "node -e \"require(\"./server/db\").seedDatabase()\""
+    "seed": "node -e \"require(\"./server/db\").seedDatabase()\"",
+    "backup": "node scripts/backup.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
