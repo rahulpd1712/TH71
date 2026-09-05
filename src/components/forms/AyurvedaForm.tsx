@@ -58,7 +58,7 @@ export default function AyurvedaForm({ data, onChange }: Props) {
 
       {/* Prakriti Assessment */}
       <div>
-        <h4 className="text-sm font-medium text-gray-900 mb-3">Prakriti Assessment</h4>
+        <h4 className="text-sm font-medium text-gray-900 mb-3">Prakriti Pariksha</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {Object.entries(PRKRITI_OPTIONS).map(([field, options]) => (
             <div key={field}>
